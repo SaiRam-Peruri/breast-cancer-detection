@@ -28,11 +28,11 @@ from detectron2.engine import HookBase
 from detectron2.utils.events import EventStorage
 
 # --- Parameters --- #
-# Trainer
-epochs = 100
-checkpoint_period = 1  # Save every 10 epochs
-batch_size = 4
-num_workers = 4
+# Trainer - Optimized for A100-80GB GPU
+epochs = 150
+checkpoint_period = 5000  # Save every 5000 iterations (more granular than epochs)
+batch_size = 16  # Increased for A100 (can try 32 if no OOM)
+num_workers = 8  # Increased for faster data loading on high-end GPU
 pretrained = True
 cb_only = False  # Set to True if only CBIS-DDSM dataset is desired to be loaded
 # Paths
@@ -224,20 +224,16 @@ class BestCheckpointHook(HookBase):
 
 def train(cfg, parsed=None):
     trainer = DefaultTrainer(cfg)
-    # Mixed precision training
-    if torch.cuda.is_available():
-        cfg.SOLVER.AMP.ENABLED = True
-    # Gradient clipping
-    cfg.SOLVER.CLIP_GRADIENTS.ENABLED = True
-    cfg.SOLVER.CLIP_GRADIENTS.CLIP_TYPE = "value"
-    cfg.SOLVER.CLIP_GRADIENTS.CLIP_VALUE = 1.0
-    # Learning rate scheduler (already in Detectron2, but can be customized)
+    # A100-specific optimizations already set in main config
+    # Learning rate scheduler with warmup for stability
     cfg.SOLVER.LR_SCHEDULER_NAME = "WarmupMultiStepLR"
-    # Add hooks for early stopping and best checkpoint
-    trainer.register_hooks([
-        EarlyStoppingHook(patience=10, metric_name="validation_loss"),
-        BestCheckpointHook(metric_name="validation_loss", output_dir=cfg.OUTPUT_DIR)
-    ])
+    cfg.SOLVER.WARMUP_ITERS = 1000  # Warmup for 1000 iterations
+    cfg.SOLVER.WARMUP_FACTOR = 0.001
+    # Add hooks for early stopping and best checkpoint (optional, can disable for full training)
+    # trainer.register_hooks([
+    #     EarlyStoppingHook(patience=10, metric_name="validation_loss"),
+    #     BestCheckpointHook(metric_name="validation_loss", output_dir=cfg.OUTPUT_DIR)
+    # ])
     # Resume logic
     resume_flag = getattr(parsed, "resume", False)
     if cfg.MODEL.WEIGHTS or (parsed and parsed.weights_path):
@@ -621,10 +617,18 @@ def main():
         cfg.MODEL.WEIGHTS = ""
     cfg.DATALOADER.NUM_WORKERS = num_workers
     cfg.SOLVER.IMS_PER_BATCH = batch_size
-    cfg.SOLVER.BASE_LR = 0.0001
-    cfg.SOLVER.CHECKPOINT_PERIOD = train_size / batch_size * checkpoint_period
+    # Scale learning rate with batch size (linear scaling rule)
+    cfg.SOLVER.BASE_LR = 0.0001 * (batch_size / 4)  # Scale from baseline batch_size=4
+    cfg.SOLVER.CHECKPOINT_PERIOD = checkpoint_period  # Now using iterations directly
     # (train_size / batch_size) * epochs
     cfg.SOLVER.MAX_ITER = int(train_size / batch_size * epochs)
+    # Enable mixed precision training for A100
+    cfg.SOLVER.AMP.ENABLED = True
+    # Gradient clipping to prevent exploding gradients
+    cfg.SOLVER.CLIP_GRADIENTS.ENABLED = True
+    cfg.SOLVER.CLIP_GRADIENTS.CLIP_TYPE = "norm"
+    cfg.SOLVER.CLIP_GRADIENTS.CLIP_VALUE = 1.0
+    cfg.SOLVER.CLIP_GRADIENTS.NORM_TYPE = 2.0
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = len(MetadataCatalog.get("train").thing_classes)
     # Save current config for later use
     with open(cfg_output, 'wb') as f:

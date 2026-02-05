@@ -36,9 +36,9 @@ from tqdm import tqdm # Add this import
 
 # --- Parameters --- #
 # Change as necessary
-chosen_datasets = ['inbreast', 'cbis-ddsm', 'mias']  # Available options: 'inbreast', 'cbis-ddsm', 'mias'
+chosen_datasets = ['cbis-ddsm']  # Available options: 'inbreast', 'cbis-ddsm', 'mias'
 # Classes chosen for segmentation
-chosen_classes = ['mass']  # Available options: 'mass', 'calcification'
+chosen_classes = ['mass', 'calcification']  # Available options: 'mass', 'calcification'
 # Recommended: YOLO
 # Hacky point: YOLO mode now generates annotations.json for COCO style as well
 output_choice = 'yolo'  # available modes: yolo, mask
@@ -49,7 +49,7 @@ low_high_mode = (low_high_input == 'y')
 
 # Train / Validation / Test split ratio
 split_mode = True
-split_ratio = [0.8, 0.1, 0.1]
+split_ratio = [0.7, 0.15, 0.15]
 split_not_in_mask_mode = True  # Must be set to true for to_3d_nrrd.py to work properly
 offline_augmentation_enabled = True  # Toggle for offline augmentation
 
@@ -547,10 +547,8 @@ if split_mode:
             dest_id = 0  # train
         elif ratio <= split_ratio[0] + split_ratio[1]:
             dest_id = 1  # val
-        elif ratio <= split_ratio[0] + split_ratio[1] + split_ratio[2]:
-            dest_id = 2  # test
         else:
-            dest = 'train'
+            dest_id = 2  # test
         # Move
         dest = os.path.join(split_dirs[dest_id], image_out_dir, file_prefix + '.jpg')
         if not os.path.exists(dest):

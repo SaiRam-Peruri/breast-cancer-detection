@@ -17,6 +17,9 @@ masks/
 archive/
 *.pt
 *.pth
+*.h5
+*.tar.gz
+*.zip
 dataset.yaml
 *.cache
 runs/
