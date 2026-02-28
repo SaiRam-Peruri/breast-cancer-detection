@@ -1,19 +1,29 @@
 # Breast Cancer Detection - Optimized for AWS EC2
 
-Optimized setup for training on full CBIS-DDSM dataset (152GB) with **200-300GB server storage**.
+Optimized setup for training on **official TCIA CBIS-DDSM dataset** (163.51GB, 1,566 studies) with **300GB server storage**.
 
-## 💾 Storage Breakdown (200-300GB Server)
+## 📊 Dataset: CBIS-DDSM (Official TCIA Version)
+
+- **Source:** The Cancer Imaging Archive (TCIA)
+- **Size:** 163.51GB (raw DICOM)
+- **Studies:** 1,566 mammography studies
+- **Format:** DICOM (converted to JPEG for training)
+- **Annotations:** Mass and calcification bounding boxes
+- **Classes:** Benign, Malignant, Normal
+- **Manifest:** [CBIS-DDSM-All-doiJNLP-zzWs5zfZ.tcia](https://www.cancerimagingarchive.net/wp-content/uploads/CBIS-DDSM-All-doiJNLP-zzWs5zfZ.tcia)
+
+## 💾 Storage Breakdown (300GB Server for 163GB Dataset)
 
 | Component | Size | Notes |
 |-----------|------|-------|
-| **CBIS-DDSM Dataset (raw)** | ~152GB | Downloaded from Kaggle |
-| **Converted images/** | ~40GB | After running convert_dataset.py |
+| **CBIS-DDSM Dataset (raw DICOM)** | ~163GB | Downloaded from TCIA |
+| **Converted images/** | ~40GB | JPEG conversion from DICOM |
 | **Training checkpoints** | ~10GB | model_*.pth files in output/ |
 | **Ubuntu OS + Dependencies** | ~20GB | CUDA, Python, packages |
-| **Free space buffer** | ~78GB | For temp files, logs, etc. |
+| **Temp files, logs, buffer** | ~67GB | Safety margin |
 | **TOTAL** | **~300GB** | ✅ Fits in 300GB server storage |
 
-**Minimum recommended: 250GB | Ideal: 300GB**
+**Minimum recommended: 300GB | Ideal: 350GB for safety**
 
 ## 📁 Repository Structure (Cleaned)
 
@@ -63,15 +73,33 @@ cd breast-cancer-detection
 pip install -r requirements.txt
 ```
 
-### Step 3: Download Dataset
+### Step 3: Download Dataset (TCIA - 163GB)
+
+The official CBIS-DDSM dataset must be downloaded from TCIA using NBIA Data Retriever.
+
+#### Option A: Download with NBIA Data Retriever (Recommended)
+
+**On your LOCAL machine (Windows/Mac/Linux):**
+1. Download NBIA Data Retriever: https://wiki.cancerimagingarchive.net/x/2QKPBQ
+2. Download manifest file: https://www.cancerimagingarchive.net/wp-content/uploads/CBIS-DDSM-All-doiJNLP-zzWs5zfZ.tcia
+3. Open NBIA Data Retriever → File → Open Manifest → Select .tcia file
+4. Set download folder to a local directory
+5. Wait for download to complete (4-8 hours depending on connection)
+
+**Transfer to EC2:**
+```bash
+# From your local machine, upload the DICOM files:
+scp -r -i your-key.pem /path/to/CBIS-DDSM/dicom ubuntu@YOUR-EC2-IP:~/workspace/breast-cancer-detection/datasets/CBIS-DDSM/
+```
+
+#### Option B: Direct Download on EC2 (Advanced)
 
 ```bash
-# Upload your Kaggle API key first
-# From your local machine:
-# scp -i your-key.pem kaggle.json ubuntu@YOUR-EC2-IP:~/.kaggle/
-
-# Download CBIS-DDSM
+# Check available download options
 ./download_data.sh
+
+# Download CSV metadata (required for annotations)
+./download_csv.sh
 ```
 
 ### Step 4: Convert Dataset
@@ -145,20 +173,18 @@ python detectron.py -c train --weights output/model_XXXXX.pth --resume
 scp -i your-key.pem ubuntu@YOUR-EC2-IP:~/workspace/breast-cancer-detection/output/model_final.pth ./
 ```
 
-## 💾 Storage Management (200-300GB)
+## 💾 Storage Management (300GB Server for 163GB Dataset)
 
-## 💾 Storage Management (200-300GB Server)
-
-### Space Breakdown for 152GB Dataset:
+### Space Breakdown for TCIA CBIS-DDSM:
 ```
-152GB  - Raw CBIS-DDSM dataset (downloaded)
- 40GB  - Converted images/ (generated)
+163GB  - Raw CBIS-DDSM DICOM files (downloaded from TCIA)
+ 40GB  - Converted images/ (JPEG generated from DICOM)
  10GB  - Training checkpoints (output/)
  20GB  - Ubuntu OS + CUDA + Python packages
  10GB  - Temp files, logs, git repo
 ------
-232GB  - TOTAL USED
- 68GB  - FREE BUFFER (for safety)
+243GB  - TOTAL USED
+ 57GB  - FREE BUFFER (for safety)
 ------
 300GB  - SERVER STORAGE
 ```
@@ -172,10 +198,17 @@ df -h
 
 **If running low on space (<50GB free):**
 
-1. **Delete raw JPEGs after conversion** (saves ~100GB):
+1. **Delete raw DICOM files after conversion** (saves ~163GB!):
 ```bash
-# After convert_dataset.py completes successfully
-rm -rf datasets/CBIS-DDSM/jpeg/
+# ⚠️ WARNING: Only do this AFTER verifying conversion worked!
+# And ONLY if you don't need the original DICOMs
+
+# Test that images/ folder is complete
+ls images/train/ | wc -l  # Should be ~10,000+
+
+# If conversion successful, delete DICOMs to free 163GB
+rm -rf datasets/CBIS-DDSM/dicom/
+
 # Keep only CSV files for annotations
 cd datasets/CBIS-DDSM && ls -lh
 ```

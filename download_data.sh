@@ -1,50 +1,70 @@
 #!/bin/bash
-# Download CBIS-DDSM dataset from Kaggle
+# Download CBIS-DDSM dataset from TCIA (The Cancer Imaging Archive)
+# Official dataset: 163.51GB, 1,566 studies
 # Run this from breast-cancer-detection directory
 
 set -e
 
 echo "========================================="
-echo "Downloading CBIS-DDSM Dataset"
+echo "Downloading CBIS-DDSM from TCIA"
+echo "Official Dataset: 163.51GB, 1,566 studies"
 echo "========================================="
 
-# Check if kaggle.json exists
-if [ ! -f ~/.kaggle/kaggle.json ]; then
-    echo "ERROR: kaggle.json not found!"
-    echo "Please upload your Kaggle API key:"
-    echo "  mkdir -p ~/.kaggle"
-    echo "  # Copy kaggle.json to ~/.kaggle/"
-    echo "  chmod 600 ~/.kaggle/kaggle.json"
-    exit 1
-fi
-
-# Install Kaggle API
-pip install -q kaggle
-
 # Create directories
+mkdir -p datasets/CBIS-DDSM/dicom
 mkdir -p datasets/CBIS-DDSM/csv
-mkdir -p datasets/CBIS-DDSM/jpeg
 
 echo ""
-echo "Downloading CBIS-DDSM dataset (~11GB subset or ~152GB full)..."
-echo "This will take 1-3 hours depending on your connection."
+echo "CBIS-DDSM must be downloaded from TCIA using one of these methods:"
+echo ""
+echo "METHOD 1: NBIA Data Retriever (Recommended)"
+echo "  1. Download NBIA Data Retriever from:"
+echo "     https://wiki.cancerimagingarchive.net/x/2QKPBQ"
+echo "  2. Download the manifest file (.tcia):"
+echo "     https://www.cancerimagingarchive.net/wp-content/uploads/CBIS-DDSM-All-doiJNLP-zzWs5zfZ.tcia"
+echo "  3. Open NBIA Data Retriever and load the .tcia file"
+echo "  4. Set download location to: $(pwd)/datasets/CBIS-DDSM/dicom/"
+echo "  5. Start download (will take 4-8 hours)"
+echo ""
+echo "METHOD 2: wget (Command Line)"
+echo "  Run the following commands:"
+echo ""
+echo "  # Download the manifest"
+echo "  wget https://www.cancerimagingarchive.net/wp-content/uploads/CBIS-DDSM-All-doiJNLP-zzWs5zfZ.tcia"
+echo ""
+echo "  # Use TCIA downloader or extract URLs and wget"
+echo "  # Note: TCIA requires special authentication"
+echo ""
+echo "METHOD 3: Kaggle (Smaller Subset - NOT recommended for full training)"
+echo "  If you want the Kaggle subset (~11GB) instead:"
+echo "  ./download_kaggle.sh"
+echo ""
+echo "========================================="
+echo "After Download Complete:"
+echo "========================================="
+echo "1. Verify DICOM files:"
+echo "   find datasets/CBIS-DDSM/dicom -name '*.dcm' | wc -l"
+echo "   # Should show ~10,000+ DICOM files"
+echo ""
+echo "2. Download CSV metadata from Kaggle:"
+echo "   ./download_csv.sh"
+echo ""
+echo "3. Then run conversion:"
+echo "   python convert_dataset.py"
 echo ""
 
-# Download from Kaggle
-kaggle datasets download -d awsaf49/cbis-ddsm-breast-cancer-image-dataset -p datasets/CBIS-DDSM --unzip
-
-# Organize files
-echo "Organizing files..."
-find datasets/CBIS-DDSM -name "*.csv" -exec mv {} datasets/CBIS-DDSM/csv/ \;
-find datasets/CBIS-DDSM -name "*.jpg" -exec mv {} datasets/CBIS-DDSM/jpeg/ \; 2>/dev/null || true
-
-# Check size
-echo ""
-echo "Download complete!"
-du -sh datasets/CBIS-DDSM/
-echo ""
-echo "CSV files:"
-ls -lh datasets/CBIS-DDSM/csv/
-echo ""
-echo "JPEG files count:"
-ls datasets/CBIS-DDSM/jpeg/ | wc -l
+# Check if dicom folder already has data
+if [ -d "datasets/CBIS-DDSM/dicom" ]; then
+    dicom_count=$(find datasets/CBIS-DDSM/dicom -name "*.dcm" 2>/dev/null | wc -l)
+    if [ "$dicom_count" -gt 0 ]; then
+        echo "✓ Found $dicom_count DICOM files already downloaded!"
+        echo "  Location: datasets/CBIS-DDSM/dicom/"
+        echo ""
+        echo "Next step: Download CSV files with ./download_csv.sh"
+    else
+        echo "⚠ DICOM folder exists but no .dcm files found"
+        echo "  Please download the dataset using methods above"
+    fi
+else
+    echo "⚠ No DICOM folder found. Please download dataset first."
+fi

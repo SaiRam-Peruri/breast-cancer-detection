@@ -53,9 +53,9 @@ inbreast_path = os.path.join('datasets', 'INbreast Release 1.0')
 inbreast_xml_dir = os.path.join(inbreast_path, 'AllXML')
 inbreast_dcm_dir = os.path.join(inbreast_path, 'AllDICOMs')
 inbreast_csv = os.path.join(inbreast_path, 'INbreast.csv')
-# CBIS-DDSM Dataset
+# CBIS-DDSM Dataset (TCIA Version - DICOM files)
 cbis_path = os.path.join('datasets', 'CBIS-DDSM')
-cbis_jpeg = os.path.join(cbis_path, 'jpeg')
+cbis_dicom = os.path.join(cbis_path, 'dicom')  # TCIA uses DICOM, not JPEG
 cbis_csv = os.path.join(cbis_path, 'csv')
 # MIAS Dataset
 mias_path = os.path.join('datasets', 'all-mias')
