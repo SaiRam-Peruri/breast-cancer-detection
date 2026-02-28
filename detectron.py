@@ -28,11 +28,11 @@ from detectron2.engine import HookBase
 from detectron2.utils.events import EventStorage
 
 # --- Parameters --- #
-# Trainer - Optimized for A100-80GB GPU
+# Optimized for AWS EC2 g5.2xlarge (A10G 24GB GPU) with 200-300GB storage
 epochs = 150
-checkpoint_period = 5000  # Save every 5000 iterations (more granular than epochs)
-batch_size = 16  # Increased for A100 (can try 32 if no OOM)
-num_workers = 8  # Increased for faster data loading on high-end GPU
+checkpoint_period = 1000  # Save every 1000 iterations for frequent checkpoints
+batch_size = 8  # Optimized for 24GB VRAM (A10G)
+num_workers = 4  # Balanced for EC2 CPU
 pretrained = True
 cb_only = False  # Set to True if only CBIS-DDSM dataset is desired to be loaded
 # Paths

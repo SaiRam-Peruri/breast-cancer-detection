@@ -35,17 +35,11 @@ from tqdm import tqdm # Add this import
 # - Mass low and high based on Bi-Rads/Malignant or benign
 
 # --- Parameters --- #
-# Change as necessary
-chosen_datasets = ['cbis-ddsm']  # Available options: 'inbreast', 'cbis-ddsm', 'mias'
-# Classes chosen for segmentation
-chosen_classes = ['mass', 'calcification']  # Available options: 'mass', 'calcification'
-# Recommended: YOLO
-# Hacky point: YOLO mode now generates annotations.json for COCO style as well
+# Optimized for 200-300GB storage - CBIS-DDSM full dataset
+chosen_datasets = ['cbis-ddsm']  # Only CBIS-DDSM for full 152GB training
+chosen_classes = ['mass']  # Start with only 'mass' to save space (add 'calcification' later)
 output_choice = 'yolo'  # available modes: yolo, mask
-
-# Ask user for low_high_mode
-low_high_input = input("Do you want to use 'mass_low' and 'mass_high' classes (y/n)? ").lower()
-low_high_mode = (low_high_input == 'y')
+low_high_mode = False  # Set to True for 'mass_low' and 'mass_high' classes
 
 # Train / Validation / Test split ratio
 split_mode = True
