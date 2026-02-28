@@ -1,6 +1,19 @@
 # Breast Cancer Detection - Optimized for AWS EC2
 
-Optimized setup for training on full CBIS-DDSM dataset (152GB) with 200-300GB storage.
+Optimized setup for training on full CBIS-DDSM dataset (152GB) with **200-300GB server storage**.
+
+## 💾 Storage Breakdown (200-300GB Server)
+
+| Component | Size | Notes |
+|-----------|------|-------|
+| **CBIS-DDSM Dataset (raw)** | ~152GB | Downloaded from Kaggle |
+| **Converted images/** | ~40GB | After running convert_dataset.py |
+| **Training checkpoints** | ~10GB | model_*.pth files in output/ |
+| **Ubuntu OS + Dependencies** | ~20GB | CUDA, Python, packages |
+| **Free space buffer** | ~78GB | For temp files, logs, etc. |
+| **TOTAL** | **~300GB** | ✅ Fits in 300GB server storage |
+
+**Minimum recommended: 250GB | Ideal: 300GB**
 
 ## 📁 Repository Structure (Cleaned)
 
@@ -134,20 +147,70 @@ scp -i your-key.pem ubuntu@YOUR-EC2-IP:~/workspace/breast-cancer-detection/outpu
 
 ## 💾 Storage Management (200-300GB)
 
-**Space breakdown:**
-- Raw dataset: ~11GB (subset) or ~152GB (full)
-- Converted images: ~50GB
-- Training checkpoints: ~10GB
-- Total: ~70-220GB
+## 💾 Storage Management (200-300GB Server)
 
-**If running low on space:**
-```bash
-# Delete raw JPEGs after conversion (keep DICOM)
-rm -rf datasets/CBIS-DDSM/jpeg/
-
-# Delete old checkpoints (keep best 3)
-cd output && ls -t model_*.pth | tail -n +4 | xargs rm
+### Space Breakdown for 152GB Dataset:
 ```
+152GB  - Raw CBIS-DDSM dataset (downloaded)
+ 40GB  - Converted images/ (generated)
+ 10GB  - Training checkpoints (output/)
+ 20GB  - Ubuntu OS + CUDA + Python packages
+ 10GB  - Temp files, logs, git repo
+------
+232GB  - TOTAL USED
+ 68GB  - FREE BUFFER (for safety)
+------
+300GB  - SERVER STORAGE
+```
+
+### Storage Management Commands:
+
+**Check disk space:**
+```bash
+df -h
+```
+
+**If running low on space (<50GB free):**
+
+1. **Delete raw JPEGs after conversion** (saves ~100GB):
+```bash
+# After convert_dataset.py completes successfully
+rm -rf datasets/CBIS-DDSM/jpeg/
+# Keep only CSV files for annotations
+cd datasets/CBIS-DDSM && ls -lh
+```
+
+2. **Delete old checkpoints** (keep last 3):
+```bash
+cd output
+ls -t model_*.pth | tail -n +4 | xargs rm -f
+ls -lh  # Verify space freed
+```
+
+3. **Clean temp files:**
+```bash
+rm -rf /tmp/*
+rm -rf ~/.cache/pip
+```
+
+### Emergency: Extreme Low Space
+
+If you only have **200GB storage**, do this BEFORE training:
+
+```bash
+# 1. Download dataset
+cd datasets/CBIS-DDSM/jpeg
+
+# 2. Convert in batches (process 50GB at a time)
+# Move first 50GB to images/, train/, val/, test/
+# Then delete those JPEGs
+# Repeat for next batch
+
+# 3. Or use streaming mode (modify convert_dataset.py)
+# Process one folder at a time
+```
+
+**Recommendation:** Use **300GB storage** for safety with 152GB dataset.
 
 ## 🛠️ Troubleshooting
 
